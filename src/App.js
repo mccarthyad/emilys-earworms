@@ -4,6 +4,51 @@ import { BarChart, Bar, PieChart as RechartsPie, Pie, Cell, XAxis, YAxis, Cartes
 
 const COLORS = ['#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444'];
 
+const GENRE_COLORS = {
+  'Pop': '#eab308',           // Yellow (bright and distinct)
+  'Rock': '#f97316',          // Orange
+  'Hip Hop': '#8b5cf6',       // Purple
+  'R&B': '#a855f7',           // Light Purple
+  'Country': '#65a30d',       // Green
+  'Electronic': '#06b6d4',    // Cyan
+  'Dance': '#3b82f6',         // Blue
+  'Indie': '#f59e0b',         // Amber
+  'Alternative': '#6366f1',   // Indigo
+  'Jazz': '#d97706',          // Dark Amber
+  'Classical': '#84cc16',     // Lime
+  'Metal': '#71717a',         // Gray
+  'Punk': '#dc2626',          // Red
+  'Folk': '#10b981',          // Emerald
+  'Soul': '#ec4899',          // Pink
+  'Reggae': '#059669',        // Teal
+  'Blues': '#1e40af',         // Dark Blue
+  'Latin': '#e11d48',         // Rose
+  'K-Pop': '#ec4899',         // Pink (same as Soul)
+  'Other': '#6b7280',         // Medium Gray
+  'Unknown': '#9ca3af'        // Light Gray
+};
+
+const getGenreColor = (genreName) => {
+  return GENRE_COLORS[genreName] || COLORS[Math.abs(hashCode(genreName)) % COLORS.length];
+};
+
+const hashCode = (str) => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return hash;
+};
+
+const capitalizeGenre = (genre) => {
+  if (!genre) return 'Unknown';
+  // Capitalize first letter of each word
+  return genre
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+};
+
 const GENRE_OPTIONS = [
   'Pop', 'Rock', 'Hip Hop', 'R&B', 'Country', 'Electronic', 'Dance', 
   'Indie', 'Alternative', 'Jazz', 'Classical', 'Metal', 'Punk', 
@@ -102,7 +147,7 @@ export default function EarwormsApp() {
                 );
                 const artistData = await artistResponse.json();
                 if (artistData.genres && artistData.genres.length > 0) {
-                  genres = artistData.genres;
+                  genres = artistData.genres.map(g => capitalizeGenre(g));
                 }
               } catch (error) {
                 console.error('Error fetching artist:', error);
@@ -113,7 +158,7 @@ export default function EarwormsApp() {
                 artist: artistName,
                 year: releaseYear,
                 duration: durationSeconds,
-                genre: genres[0] || 'Unknown',
+                genre: capitalizeGenre(genres[0]) || 'Unknown',
                 genres: genres,
                 albumArt: track.album.images[0]?.url,
                 popularity: track.popularity,
@@ -481,7 +526,7 @@ export default function EarwormsApp() {
                           dataKey="value"
                         >
                           {genreChartData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            <Cell key={`cell-${index}`} fill={getGenreColor(entry.name)} />
                           ))}
                         </Pie>
                         <Tooltip />

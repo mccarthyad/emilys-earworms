@@ -4,6 +4,12 @@ import { BarChart, Bar, PieChart as RechartsPie, Pie, Cell, XAxis, YAxis, Cartes
 
 const COLORS = ['#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444'];
 
+const GENRE_OPTIONS = [
+  'Pop', 'Rock', 'Hip Hop', 'R&B', 'Country', 'Electronic', 'Dance', 
+  'Indie', 'Alternative', 'Jazz', 'Classical', 'Metal', 'Punk', 
+  'Folk', 'Soul', 'Reggae', 'Blues', 'Latin', 'K-Pop', 'Other'
+];
+
 const ARTISTS = [
   { name: 'Taylor Swift', sex: 'Female', birthYear: 1989 },
   { name: 'The Weeknd', sex: 'Male', birthYear: 1990 },
@@ -27,6 +33,7 @@ export default function EarwormsApp() {
   const [activeView, setActiveView] = useState('dashboard');
   const [isSearching, setIsSearching] = useState(false);
   const [spotifyToken, setSpotifyToken] = useState(null);
+  const [customGenre, setCustomGenre] = useState('');
 
   useEffect(() => {
     loadSongs();
@@ -155,9 +162,15 @@ export default function EarwormsApp() {
   const addSong = () => {
     if (!selectedSong) return;
 
+    // Use custom genre if provided and song genre is Unknown
+    const finalGenre = (selectedSong.genre === 'Unknown' && customGenre) 
+      ? customGenre 
+      : selectedSong.genre;
+
     const newEntry = {
       id: Date.now(),
       ...selectedSong,
+      genre: finalGenre,
       timestamp: dateTime || new Date().toISOString(),
       dateAdded: new Date().toISOString()
     };
@@ -169,6 +182,7 @@ export default function EarwormsApp() {
     setSearchQuery('');
     setSelectedSong(null);
     setDateTime('');
+    setCustomGenre('');
     setActiveView('dashboard');
   };
 
@@ -347,6 +361,24 @@ export default function EarwormsApp() {
                   <div className="text-xs text-gray-400">
                     {selectedSong.genre} • {selectedSong.year} • {Math.floor(selectedSong.duration / 60)}:{(selectedSong.duration % 60).toString().padStart(2, '0')}
                   </div>
+                  
+                  {selectedSong.genre === 'Unknown' && (
+                    <div className="mt-3">
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Genre not found - please select one:
+                      </label>
+                      <select
+                        value={customGenre}
+                        onChange={(e) => setCustomGenre(e.target.value)}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      >
+                        <option value="">Select a genre...</option>
+                        {GENRE_OPTIONS.map(genre => (
+                          <option key={genre} value={genre}>{genre}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -377,6 +409,7 @@ export default function EarwormsApp() {
                     setSearchQuery('');
                     setSelectedSong(null);
                     setDateTime('');
+                    setCustomGenre('');
                   }}
                   className="flex-1 px-4 py-3 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-700 transition-colors font-medium"
                 >
@@ -384,7 +417,7 @@ export default function EarwormsApp() {
                 </button>
                 <button
                   onClick={addSong}
-                  disabled={!selectedSong}
+                  disabled={!selectedSong || (selectedSong.genre === 'Unknown' && !customGenre)}
                   className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                 >
                   Add Earworm

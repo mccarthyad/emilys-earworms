@@ -1,32 +1,38 @@
 import React, { useState, useEffect } from 'react';
-import { Music, Clock, TrendingUp, PieChart, BarChart3, Plus, Trash2 } from 'lucide-react';
+import { Music, Cloud, Clock, TrendingUp, PieChart, BarChart3, Plus, Trash2 } from 'lucide-react';
 import { BarChart, Bar, PieChart as RechartsPie, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const COLORS = ['#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444'];
 
 const GENRE_COLORS = {
-  'Pop': '#eab308',           // Yellow (bright and distinct)
-  'Rock': '#f97316',          // Orange
-  'Hip Hop': '#8b5cf6',       // Purple
-  'R&B': '#a855f7',           // Light Purple
-  'Country': '#65a30d',       // Green
-  'Electronic': '#06b6d4',    // Cyan
-  'Dance': '#3b82f6',         // Blue
-  'Indie': '#f59e0b',         // Amber
-  'Alternative': '#6366f1',   // Indigo
-  'Jazz': '#d97706',          // Dark Amber
-  'Classical': '#84cc16',     // Lime
-  'Metal': '#71717a',         // Gray
-  'Punk': '#dc2626',          // Red
-  'Folk': '#10b981',          // Emerald
-  'Soul': '#ec4899',          // Pink
-  'Reggae': '#059669',        // Teal
-  'Blues': '#1e40af',         // Dark Blue
-  'Latin': '#e11d48',         // Rose
-  'K-Pop': '#ec4899',         // Pink (same as Soul)
-  'Other': '#6b7280',         // Medium Gray
-  'Unknown': '#9ca3af'        // Light Gray
+  'Pop': '#eab308',
+  'Rock': '#f97316',
+  'Hip Hop': '#8b5cf6',
+  'R&B': '#a855f7',
+  'Country': '#65a30d',
+  'Electronic': '#06b6d4',
+  'Dance': '#3b82f6',
+  'Indie': '#f59e0b',
+  'Alternative': '#6366f1',
+  'Jazz': '#d97706',
+  'Classical': '#84cc16',
+  'Metal': '#71717a',
+  'Punk': '#dc2626',
+  'Folk': '#10b981',
+  'Soul': '#ec4899',
+  'Reggae': '#059669',
+  'Blues': '#1e40af',
+  'Latin': '#e11d48',
+  'K-Pop': '#ec4899',
+  'Other': '#6b7280',
+  'Unknown': '#9ca3af'
 };
+
+const GENRE_OPTIONS = [
+  'Pop', 'Rock', 'Hip Hop', 'R&B', 'Country', 'Electronic', 'Dance', 
+  'Indie', 'Alternative', 'Jazz', 'Classical', 'Metal', 'Punk', 
+  'Folk', 'Soul', 'Reggae', 'Blues', 'Latin', 'K-Pop', 'Other'
+];
 
 const getGenreColor = (genreName) => {
   return GENRE_COLORS[genreName] || COLORS[Math.abs(hashCode(genreName)) % COLORS.length];
@@ -42,31 +48,11 @@ const hashCode = (str) => {
 
 const capitalizeGenre = (genre) => {
   if (!genre) return 'Unknown';
-  // Capitalize first letter of each word
   return genre
     .split(' ')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ');
 };
-
-const GENRE_OPTIONS = [
-  'Pop', 'Rock', 'Hip Hop', 'R&B', 'Country', 'Electronic', 'Dance', 
-  'Indie', 'Alternative', 'Jazz', 'Classical', 'Metal', 'Punk', 
-  'Folk', 'Soul', 'Reggae', 'Blues', 'Latin', 'K-Pop', 'Other'
-];
-
-const ARTISTS = [
-  { name: 'Taylor Swift', sex: 'Female', birthYear: 1989 },
-  { name: 'The Weeknd', sex: 'Male', birthYear: 1990 },
-  { name: 'Billie Eilish', sex: 'Female', birthYear: 2001 },
-  { name: 'Ed Sheeran', sex: 'Male', birthYear: 1991 },
-  { name: 'Ariana Grande', sex: 'Female', birthYear: 1993 },
-  { name: 'Drake', sex: 'Male', birthYear: 1986 },
-  { name: 'Olivia Rodrigo', sex: 'Female', birthYear: 2003 },
-  { name: 'Harry Styles', sex: 'Male', birthYear: 1994 },
-  { name: 'Dua Lipa', sex: 'Female', birthYear: 1995 },
-  { name: 'Post Malone', sex: 'Male', birthYear: 1995 }
-];
 
 export default function EarwormsApp() {
   const [songs, setSongs] = useState([]);
@@ -79,6 +65,8 @@ export default function EarwormsApp() {
   const [isSearching, setIsSearching] = useState(false);
   const [spotifyToken, setSpotifyToken] = useState(null);
   const [customGenre, setCustomGenre] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
     loadSongs();
@@ -89,8 +77,6 @@ export default function EarwormsApp() {
     try {
       const clientId = process.env.REACT_APP_SPOTIFY_CLIENT_ID;
       const clientSecret = process.env.REACT_APP_SPOTIFY_CLIENT_SECRET;
-      
-      console.log('Getting Spotify token...');
       
       const response = await fetch('https://accounts.spotify.com/api/token', {
         method: 'POST',
@@ -103,7 +89,6 @@ export default function EarwormsApp() {
       
       const data = await response.json();
       setSpotifyToken(data.access_token);
-      console.log('Spotify token received!');
     } catch (error) {
       console.error('Error getting Spotify token:', error);
     }
@@ -114,8 +99,6 @@ export default function EarwormsApp() {
       if (searchQuery.length > 2 && spotifyToken) {
         setIsSearching(true);
         try {
-          console.log('Searching Spotify for:', searchQuery);
-          
           const response = await fetch(
             `https://api.spotify.com/v1/search?q=${encodeURIComponent(searchQuery)}&type=track&limit=10`,
             {
@@ -125,8 +108,6 @@ export default function EarwormsApp() {
             }
           );
           const data = await response.json();
-          
-          console.log('Spotify results:', data);
           
           const songsWithArtistData = await Promise.all(
             data.tracks.items.map(async (track) => {
@@ -183,31 +164,58 @@ export default function EarwormsApp() {
     return () => clearTimeout(timeoutId);
   }, [searchQuery, spotifyToken]);
 
-  const loadSongs = () => {
+  const loadSongs = async () => {
+    setIsLoading(true);
     try {
-      const stored = localStorage.getItem('emilys-earworms');
-      if (stored) {
-        setSongs(JSON.parse(stored));
+      const response = await fetch('/api/songs');
+      if (response.ok) {
+        const data = await response.json();
+        const formattedSongs = data.map(song => ({
+          id: Number(song.id),
+          title: song.title,
+          artist: song.artist,
+          year: song.year,
+          duration: song.duration,
+          genre: song.genre,
+          genres: song.genres,
+          albumArt: song.album_art,
+          popularity: song.popularity,
+          spotifyId: song.spotify_id,
+          artistId: song.artist_id,
+          timestamp: song.timestamp,
+          dateAdded: song.date_added
+        }));
+        setSongs(formattedSongs);
       }
     } catch (error) {
       console.error('Error loading songs:', error);
-      setSongs([]);
     }
+    setIsLoading(false);
   };
 
-  const saveSongs = (newSongs) => {
+  const saveSong = async (song) => {
+    setIsSyncing(true);
     try {
-      localStorage.setItem('emilys-earworms', JSON.stringify(newSongs));
-      setSongs(newSongs);
+      const response = await fetch('/api/songs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(song)
+      });
+      
+      if (response.ok) {
+        await loadSongs();
+      }
     } catch (error) {
-      console.error('Error saving songs:', error);
+      console.error('Error saving song:', error);
     }
+    setIsSyncing(false);
   };
 
-  const addSong = () => {
+  const addSong = async () => {
     if (!selectedSong) return;
 
-    // Use custom genre if provided and song genre is Unknown
     const finalGenre = (selectedSong.genre === 'Unknown' && customGenre) 
       ? customGenre 
       : selectedSong.genre;
@@ -220,8 +228,7 @@ export default function EarwormsApp() {
       dateAdded: new Date().toISOString()
     };
 
-    const updatedSongs = [...songs, newEntry];
-    saveSongs(updatedSongs);
+    await saveSong(newEntry);
     
     setShowForm(false);
     setSearchQuery('');
@@ -231,9 +238,24 @@ export default function EarwormsApp() {
     setActiveView('dashboard');
   };
 
-  const deleteSong = (id) => {
-    const updatedSongs = songs.filter(s => s.id !== id);
-    saveSongs(updatedSongs);
+  const deleteSong = async (id) => {
+    setIsSyncing(true);
+    try {
+      const response = await fetch('/api/songs', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id })
+      });
+      
+      if (response.ok) {
+        await loadSongs();
+      }
+    } catch (error) {
+      console.error('Error deleting song:', error);
+    }
+    setIsSyncing(false);
   };
 
   const setNow = () => {
@@ -299,7 +321,15 @@ export default function EarwormsApp() {
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
                   Emily's Earworms
                 </h1>
-                <p className="text-sm text-gray-400">Songs stuck in her head</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-gray-400">Songs stuck in her head</p>
+                  {isSyncing && (
+                    <div className="flex items-center gap-1 text-xs text-purple-400">
+                      <Cloud className="w-3 h-3 animate-pulse" />
+                      <span>Syncing...</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
             <button
@@ -474,163 +504,174 @@ export default function EarwormsApp() {
       )}
 
       <div className="max-w-6xl mx-auto px-4 py-6">
-        {activeView === 'dashboard' && (
-          <div className="space-y-6">
-            {songs.length === 0 ? (
-              <div className="bg-gray-800 rounded-2xl shadow-lg p-12 text-center border border-gray-700">
-                <Music className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-300 mb-2">No earworms yet!</h3>
-                <p className="text-gray-500">Start tracking songs that get stuck in Emily's head</p>
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                  <div className="bg-gray-800 rounded-xl shadow-lg p-4 transform hover:scale-105 transition-transform duration-300 border border-gray-700">
-                    <div className="text-3xl font-bold text-purple-400">{songs.length}</div>
-                    <div className="text-sm text-gray-400">Total Songs</div>
-                  </div>
-                  <div className="bg-gray-800 rounded-xl shadow-lg p-4 transform hover:scale-105 transition-transform duration-300 border border-gray-700">
-                    <div className="text-3xl font-bold text-pink-400">{avgYear}</div>
-                    <div className="text-sm text-gray-400">Avg Year</div>
-                  </div>
-                  <div className="bg-gray-800 rounded-xl shadow-lg p-4 transform hover:scale-105 transition-transform duration-300 border border-gray-700">
-                    <div className="text-3xl font-bold text-blue-400">{Math.floor(avgDuration / 60)}:{(avgDuration % 60).toString().padStart(2, '0')}</div>
-                    <div className="text-sm text-gray-400">Avg Length</div>
-                  </div>
-                  <div className="bg-gray-800 rounded-xl shadow-lg p-4 transform hover:scale-105 transition-transform duration-300 border border-gray-700">
-                    <div className="text-3xl font-bold text-indigo-400">{Object.keys(genreData).length}</div>
-                    <div className="text-sm text-gray-400">Genres</div>
-                  </div>
-                  <div className="bg-gray-800 rounded-xl shadow-lg p-4 transform hover:scale-105 transition-transform duration-300 border border-gray-700">
-                    <div className="text-3xl font-bold text-amber-400">{avgPopularity}</div>
-                    <div className="text-sm text-gray-400">Avg Popularity</div>
-                  </div>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-700">
-                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-white">
-                      <PieChart className="w-5 h-5 text-purple-400" />
-                      Genre Distribution
-                    </h3>
-                    <ResponsiveContainer width="100%" height={250}>
-                      <RechartsPie>
-                        <Pie
-                          data={genreChartData}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {genreChartData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={getGenreColor(entry.name)} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                      </RechartsPie>
-                    </ResponsiveContainer>
-                  </div>
-
-                  <div className="bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-700">
-                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-white">
-                      <TrendingUp className="w-5 h-5 text-pink-400" />
-                      Top Artists
-                    </h3>
-                    <ResponsiveContainer width="100%" height={250}>
-                      <BarChart data={topArtistsData} layout="vertical">
-                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                        <XAxis type="number" stroke="#9ca3af" />
-                        <YAxis dataKey="artist" type="category" width={100} stroke="#9ca3af" />
-                        <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151' }} />
-                        <Bar dataKey="count" fill="#ec4899" radius={[0, 8, 8, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-
-                  <div className="bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-700">
-                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-white">
-                      <Clock className="w-5 h-5 text-blue-400" />
-                      Time of Day
-                    </h3>
-                    <ResponsiveContainer width="100%" height={250}>
-                      <BarChart data={timeChartData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                        <XAxis dataKey="period" stroke="#9ca3af" />
-                        <YAxis stroke="#9ca3af" />
-                        <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151' }} />
-                        <Bar dataKey="count" fill="#3b82f6" radius={[8, 8, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-
-                  <div className="bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-700">
-                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-white">
-                      <BarChart3 className="w-5 h-5 text-indigo-400" />
-                      By Decade
-                    </h3>
-                    <ResponsiveContainer width="100%" height={250}>
-                      <BarChart data={decadeChartData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                        <XAxis dataKey="decade" stroke="#9ca3af" />
-                        <YAxis stroke="#9ca3af" />
-                        <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151' }} />
-                        <Bar dataKey="count" fill="#6366f1" radius={[8, 8, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              </>
-            )}
+        {isLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <Cloud className="w-16 h-16 text-purple-400 mx-auto mb-4 animate-pulse" />
+              <p className="text-gray-400">Loading from cloud...</p>
+            </div>
           </div>
-        )}
-
-        {activeView === 'history' && (
-          <div className="space-y-3">
-            {songs.length === 0 ? (
-              <div className="bg-gray-800 rounded-2xl shadow-lg p-12 text-center border border-gray-700">
-                <Music className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-300 mb-2">No history yet!</h3>
-                <p className="text-gray-500">Songs you add will appear here</p>
-              </div>
-            ) : (
-              songs.slice().reverse().map((song) => (
-                <div
-                  key={song.id}
-                  className="bg-gray-800 rounded-xl shadow-lg p-4 hover:shadow-xl transition-all duration-300 border border-gray-700"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-white">{song.title}</h4>
-                      <p className="text-sm text-gray-400">{song.artist}</p>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        <span className="px-2 py-1 bg-purple-900 text-purple-300 rounded-full text-xs border border-purple-700">
-                          {song.genre}
-                        </span>
-                        <span className="px-2 py-1 bg-pink-900 text-pink-300 rounded-full text-xs border border-pink-700">
-                          {song.year}
-                        </span>
-                        <span className="px-2 py-1 bg-blue-900 text-blue-300 rounded-full text-xs border border-blue-700">
-                          {Math.floor(song.duration / 60)}:{(song.duration % 60).toString().padStart(2, '0')}
-                        </span>
+        ) : (
+          <>
+            {activeView === 'dashboard' && (
+              <div className="space-y-6">
+                {songs.length === 0 ? (
+                  <div className="bg-gray-800 rounded-2xl shadow-lg p-12 text-center border border-gray-700">
+                    <Music className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-300 mb-2">No earworms yet!</h3>
+                    <p className="text-gray-500">Start tracking songs</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                      <div className="bg-gray-800 rounded-xl shadow-lg p-4 transform hover:scale-105 transition-transform duration-300 border border-gray-700">
+                        <div className="text-3xl font-bold text-purple-400">{songs.length}</div>
+                        <div className="text-sm text-gray-400">Total Songs</div>
                       </div>
-                      <p className="text-xs text-gray-500 mt-2">
-                        {new Date(song.timestamp).toLocaleString()}
-                      </p>
+                      <div className="bg-gray-800 rounded-xl shadow-lg p-4 transform hover:scale-105 transition-transform duration-300 border border-gray-700">
+                        <div className="text-3xl font-bold text-pink-400">{avgYear}</div>
+                        <div className="text-sm text-gray-400">Avg Year</div>
+                      </div>
+                      <div className="bg-gray-800 rounded-xl shadow-lg p-4 transform hover:scale-105 transition-transform duration-300 border border-gray-700">
+                        <div className="text-3xl font-bold text-blue-400">{Math.floor(avgDuration / 60)}:{(avgDuration % 60).toString().padStart(2, '0')}</div>
+                        <div className="text-sm text-gray-400">Avg Length</div>
+                      </div>
+                      <div className="bg-gray-800 rounded-xl shadow-lg p-4 transform hover:scale-105 transition-transform duration-300 border border-gray-700">
+                        <div className="text-3xl font-bold text-indigo-400">{Object.keys(genreData).length}</div>
+                        <div className="text-sm text-gray-400">Genres</div>
+                      </div>
+                      <div className="bg-gray-800 rounded-xl shadow-lg p-4 transform hover:scale-105 transition-transform duration-300 border border-gray-700">
+                        <div className="text-3xl font-bold text-amber-400">{avgPopularity}</div>
+                        <div className="text-sm text-gray-400">Avg Popularity</div>
+                      </div>
                     </div>
-                    <button
-                      onClick={() => deleteSong(song.id)}
-                      className="text-red-400 hover:bg-red-900 hover:bg-opacity-30 p-2 rounded-lg transition-colors"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-              ))
+
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <div className="bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-700">
+                        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-white">
+                          <PieChart className="w-5 h-5 text-purple-400" />
+                          Genre Distribution
+                        </h3>
+                        <ResponsiveContainer width="100%" height={250}>
+                          <RechartsPie>
+                            <Pie
+                              data={genreChartData}
+                              cx="50%"
+                              cy="50%"
+                              labelLine={false}
+                              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                              outerRadius={80}
+                              fill="#8884d8"
+                              dataKey="value"
+                            >
+                              {genreChartData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={getGenreColor(entry.name)} />
+                              ))}
+                            </Pie>
+                            <Tooltip />
+                          </RechartsPie>
+                        </ResponsiveContainer>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-700">
+                        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-white">
+                          <TrendingUp className="w-5 h-5 text-pink-400" />
+                          Top Artists
+                        </h3>
+                        <ResponsiveContainer width="100%" height={250}>
+                          <BarChart data={topArtistsData} layout="vertical">
+                            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                            <XAxis type="number" stroke="#9ca3af" />
+                            <YAxis dataKey="artist" type="category" width={100} stroke="#9ca3af" />
+                            <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151' }} />
+                            <Bar dataKey="count" fill="#ec4899" radius={[0, 8, 8, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-700">
+                        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-white">
+                          <Clock className="w-5 h-5 text-blue-400" />
+                          Time of Day
+                        </h3>
+                        <ResponsiveContainer width="100%" height={250}>
+                          <BarChart data={timeChartData}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                            <XAxis dataKey="period" stroke="#9ca3af" />
+                            <YAxis stroke="#9ca3af" />
+                            <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151' }} />
+                            <Bar dataKey="count" fill="#3b82f6" radius={[8, 8, 0, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-700">
+                        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-white">
+                          <BarChart3 className="w-5 h-5 text-indigo-400" />
+                          By Decade
+                        </h3>
+                        <ResponsiveContainer width="100%" height={250}>
+                          <BarChart data={decadeChartData}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                            <XAxis dataKey="decade" stroke="#9ca3af" />
+                            <YAxis stroke="#9ca3af" />
+                            <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151' }} />
+                            <Bar dataKey="count" fill="#6366f1" radius={[8, 8, 0, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
             )}
-          </div>
+
+            {activeView === 'history' && (
+              <div className="space-y-3">
+                {songs.length === 0 ? (
+                  <div className="bg-gray-800 rounded-2xl shadow-lg p-12 text-center border border-gray-700">
+                    <Music className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-300 mb-2">No history yet!</h3>
+                    <p className="text-gray-500">Songs you add will appear here</p>
+                  </div>
+                ) : (
+                  songs.slice().reverse().map((song) => (
+                    <div
+                      key={song.id}
+                      className="bg-gray-800 rounded-xl shadow-lg p-4 hover:shadow-xl transition-all duration-300 border border-gray-700"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-white">{song.title}</h4>
+                          <p className="text-sm text-gray-400">{song.artist}</p>
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            <span className="px-2 py-1 bg-purple-900 text-purple-300 rounded-full text-xs border border-purple-700">
+                              {song.genre}
+                            </span>
+                            <span className="px-2 py-1 bg-pink-900 text-pink-300 rounded-full text-xs border border-pink-700">
+                              {song.year}
+                            </span>
+                            <span className="px-2 py-1 bg-blue-900 text-blue-300 rounded-full text-xs border border-blue-700">
+                              {Math.floor(song.duration / 60)}:{(song.duration % 60).toString().padStart(2, '0')}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-2">
+                            {new Date(song.timestamp).toLocaleString()}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => deleteSong(song.id)}
+                          className="text-red-400 hover:bg-red-900 hover:bg-opacity-30 p-2 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

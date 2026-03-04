@@ -2,31 +2,36 @@ import React, { useState, useEffect } from 'react';
 import { Music, Cloud, Clock, TrendingUp, PieChart, BarChart3, Plus, Trash2 } from 'lucide-react';
 import { BarChart, Bar, PieChart as RechartsPie, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend } from 'recharts';
 
-const COLORS = ['#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444'];
-
 const GENRE_COLORS = {
-  'Pop': '#eab308',
-  'Rock': '#f97316',
-  'Hip Hop': '#8b5cf6',
-  'R&B': '#a855f7',
-  'Country': '#65a30d',
-  'Electronic': '#06b6d4',
-  'Dance': '#3b82f6',
-  'Indie': '#f59e0b',
-  'Alternative': '#6366f1',
-  'Jazz': '#d97706',
-  'Classical': '#84cc16',
-  'Metal': '#71717a',
-  'Punk': '#dc2626',
-  'Folk': '#10b981',
-  'Soul': '#ec4899',
-  'Reggae': '#059669',
-  'Blues': '#1e40af',
-  'Latin': '#e11d48',
-  'K-Pop': '#ec4899',
+  'Pop': '#f6be00',
+  'Rock': '#fb5607',
+  'Hip Hop': '#8338ec',
+  'R&B': '#ff006e',
+  'Country': '#80ed99',
+  'Electronic': '#00bbf9',
+  'Dance': '#3a86ff',
+  'Indie': '#ff9f1c',
+  'Alternative': '#4361ee',
+  'Jazz': '#b5179e',
+  'Classical': '#2ec4b6',
+  'Metal': '#6c757d',
+  'Punk': '#e63946',
+  'Folk': '#52b788',
+  'Soul': '#f15bb5',
+  'Reggae': '#06d6a0',
+  'Blues': '#118ab2',
+  'Latin': '#ef476f',
+  'K-Pop': '#ff4d6d',
   'Other': '#6b7280',
   'Unknown': '#9ca3af'
 };
+
+const PIE_SLICE_COLORS = [
+  '#4e79a7', '#f28e2b', '#e15759', '#76b7b2', '#59a14f',
+  '#edc948', '#b07aa1', '#ff9da7', '#9c755f', '#bab0ab',
+  '#7f3c8d', '#11a579', '#3969ac', '#f2b701', '#e73f74',
+  '#80ba5a', '#e68310', '#008695', '#cf1c90', '#f97b72'
+];
 
 const GENRE_OPTIONS = [
   'Pop', 'Rock', 'Hip Hop', 'R&B', 'Country', 'Electronic', 'Dance', 
@@ -34,16 +39,8 @@ const GENRE_OPTIONS = [
   'Folk', 'Soul', 'Reggae', 'Blues', 'Latin', 'K-Pop', 'Other'
 ];
 
-const getGenreColor = (genreName) => {
-  return GENRE_COLORS[genreName] || COLORS[Math.abs(hashCode(genreName)) % COLORS.length];
-};
-
-const hashCode = (str) => {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return hash;
+const getGenreColor = (genreName, index = 0) => {
+  return GENRE_COLORS[genreName] || PIE_SLICE_COLORS[index % PIE_SLICE_COLORS.length];
 };
 
 const capitalizeGenre = (genre) => {
@@ -687,7 +684,7 @@ export default function EarwormsApp() {
                               dataKey="value"
                             >
                               {genreChartData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={getGenreColor(entry.name)} />
+                                <Cell key={`cell-${index}`} fill={getGenreColor(entry.name, index)} />
                               ))}
                             </Pie>
                             <Tooltip
@@ -700,14 +697,14 @@ export default function EarwormsApp() {
                           </RechartsPie>
                         </ResponsiveContainer>
                         <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                          {genreChartData.map((entry) => {
+                          {genreChartData.map((entry, index) => {
                             const percent = songs.length > 0 ? Math.round((entry.value / songs.length) * 100) : 0;
                             return (
                               <div key={entry.name} className="flex items-center justify-between gap-3 text-gray-300">
                                 <div className="flex items-center gap-2 min-w-0">
                                   <span
                                     className="w-2.5 h-2.5 rounded-full shrink-0"
-                                    style={{ backgroundColor: getGenreColor(entry.name) }}
+                                    style={{ backgroundColor: getGenreColor(entry.name, index) }}
                                   />
                                   <span className="truncate">{entry.name}</span>
                                 </div>

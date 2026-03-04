@@ -1,70 +1,57 @@
-# Getting Started with Create React App
+# Emily's Earworms
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A tiny, mildly scientific app for tracking songs stuck in my girlfriend's head.
 
-## Available Scripts
+Instead of asking "wait, is this the third time this week?", we collect receipts: what song, when it got stuck, and what patterns show up over time.
 
-In the project directory, you can run:
+## What It Does
 
-### `npm start`
+- Search songs from Spotify and pull metadata (artist, year, duration, genre, popularity, album art).
+- Log each earworm event with a timestamp.
+- Save entries to a Neon Postgres database through serverless API routes.
+- Show trend dashboards for:
+  - Genre distribution
+  - Most frequent artists
+  - Time-of-day earworms
+  - Songs by decade
+- View full history and delete entries when needed.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Tech Stack
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+- Frontend: React + Tailwind CSS + Recharts
+- Icons: lucide-react
+- Backend/API: Vercel serverless functions (`api/songs.js`, `api/health.js`)
+- Database: Neon Postgres (`@neondatabase/serverless`)
+- Music data source: Spotify Web API (Client Credentials flow)
 
-### `npm test`
+## Environment Variables
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Create a `.env` file in the project root:
 
-### `npm run build`
+```env
+REACT_APP_SPOTIFY_CLIENT_ID=your_spotify_client_id
+REACT_APP_SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
+DATABASE_URL=your_neon_postgres_connection_string
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Run Locally
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```bash
+npm install
+npm start
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Open `http://localhost:3000`.
 
-### `npm run eject`
+## API Endpoints
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+- `GET /api/health` -> simple health check
+- `GET /api/songs` -> fetch all earworms
+- `POST /api/songs` -> add an earworm entry
+- `DELETE /api/songs` -> delete an entry by `id`
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## Why This Exists
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+Because love is real, and so is hearing the same chorus 19 times before lunch.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+This project turns that experience into charts, trends, and evidence.

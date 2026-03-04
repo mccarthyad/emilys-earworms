@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Music, Cloud, Clock, TrendingUp, PieChart, BarChart3, Plus, Trash2 } from 'lucide-react';
-import { BarChart, Bar, PieChart as RechartsPie, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, PieChart as RechartsPie, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend } from 'recharts';
 
 const COLORS = ['#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444'];
 
@@ -52,6 +52,24 @@ const capitalizeGenre = (genre) => {
     .split(' ')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ');
+};
+
+const getTimePeriod = (timestamp) => {
+  const hour = new Date(timestamp).getHours();
+  return hour < 6 ? 'Night' : hour < 12 ? 'Morning' : hour < 18 ? 'Afternoon' : 'Evening';
+};
+
+const toMonthKey = (timestamp) => {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return null;
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  return `${date.getFullYear()}-${month}`;
+};
+
+const formatMonthLabel = (monthKey) => {
+  const [year, month] = monthKey.split('-').map(Number);
+  const date = new Date(year, month - 1, 1);
+  return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
 };
 
 export default function EarwormsApp() {
@@ -283,8 +301,7 @@ export default function EarwormsApp() {
   ];
 
   const timeOfDayData = songs.reduce((acc, song) => {
-    const hour = new Date(song.timestamp).getHours();
-    const period = hour < 6 ? 'Night' : hour < 12 ? 'Morning' : hour < 18 ? 'Afternoon' : 'Evening';
+    const period = getTimePeriod(song.timestamp);
     acc[period] = (acc[period] || 0) + 1;
     return acc;
   }, {});
@@ -313,6 +330,99 @@ export default function EarwormsApp() {
   const decadeChartData = Object.entries(decadeData)
     .sort(([a], [b]) => Number(a) - Number(b))
     .map(([decade, count]) => ({ decade: `${decade}s`, count }));
+
+  const periodOrder = ['Morning', 'Afternoon', 'Evening', 'Night'];
+  const moodClockBuckets = songs.reduce((acc, song) => {
+    const period = getTimePeriod(song.timestamp);
+    const genre = song.genre || 'Unknown';
+    if (!acc[period]) acc[period] = {};
+    acc[period][genre] = (acc[period][genre] || 0) + 1;
+    return acc;
+  }, {});
+
+  const moodClockData = periodOrder.map((period) => {
+    const entries = Object.entries(moodClockBuckets[period] || {}).sort(([, a], [, b]) => b - a);
+    const total = entries.reduce((sum, [, count]) => sum + count, 0);
+    if (entries.length === 0) {
+      return { period, topGenre: 'No data', topCount: 0, topShare: 0 };
+    }
+    const [topGenre, topCount] = entries[0];
+    return {
+      period,
+      topGenre,
+      topCount,
+      topShare: total > 0 ? Math.round((topCount / total) * 100) : 0
+    };
+  });
+
+  const nostalgiaGaps = songs
+    .map((song) => {
+      const stuckYear = new Date(song.timestamp).getFullYear();
+      if (!song.year || Number.isNaN(stuckYear)) return null;
+      return stuckYear - song.year;
+    })
+    .filter((gap) => Number.isFinite(gap));
+  const nostalgiaScore = nostalgiaGaps.length > 0
+    ? Math.round((nostalgiaGaps.reduce((sum, gap) => sum + gap, 0) / nostalgiaGaps.length) * 10) / 10
+    : 0;
+  const hasNostalgiaData = nostalgiaGaps.length > 0;
+  const nostalgiaLabel = hasNostalgiaData
+    ? (nostalgiaScore >= 10 ? 'Deep cuts era' : nostalgiaScore >= 4 ? 'Throwback blend' : 'Mostly fresh tracks')
+    : 'Not enough data yet';
+
+  const songsByTimestamp = songs.slice().sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  const seenArtists = new Set();
+  const discoveryByMonth = songsByTimestamp.reduce((acc, song) => {
+    const month = toMonthKey(song.timestamp);
+    if (!month) return acc;
+
+    if (!acc[month]) {
+      acc[month] = { month, discovery: 0, comfort: 0 };
+    }
+
+    const artistName = song.artist || 'Unknown Artist';
+    if (seenArtists.has(artistName)) {
+      acc[month].comfort += 1;
+    } else {
+      acc[month].discovery += 1;
+      seenArtists.add(artistName);
+    }
+
+    return acc;
+  }, {});
+
+  const discoveryComfortData = Object.values(discoveryByMonth)
+    .sort((a, b) => a.month.localeCompare(b.month))
+    .map((row) => ({
+      ...row,
+      label: formatMonthLabel(row.month)
+    }));
+
+  const popularityByMonth = songs.reduce((acc, song) => {
+    const month = toMonthKey(song.timestamp);
+    const popularity = Number(song.popularity);
+    if (!month || !Number.isFinite(popularity) || popularity <= 0) return acc;
+
+    if (!acc[month]) {
+      acc[month] = { month, total: 0, count: 0 };
+    }
+
+    acc[month].total += popularity;
+    acc[month].count += 1;
+    return acc;
+  }, {});
+
+  const popularityDriftData = Object.values(popularityByMonth)
+    .sort((a, b) => a.month.localeCompare(b.month))
+    .map((row) => ({
+      month: row.month,
+      label: formatMonthLabel(row.month),
+      popularity: Math.round((row.total / row.count) * 10) / 10
+    }));
+
+  const insightWindow = 8;
+  const discoveryComfortWindow = discoveryComfortData.slice(-insightWindow);
+  const popularityDriftWindow = popularityDriftData.slice(-insightWindow);
 
   const avgDuration = songs.length > 0 ? Math.round(songs.reduce((sum, s) => sum + s.duration, 0) / songs.length) : 0;
   const avgYear = songs.length > 0 ? Math.round(songs.reduce((sum, s) => sum + s.year, 0) / songs.length) : 0;
@@ -616,7 +726,12 @@ export default function EarwormsApp() {
                         <ResponsiveContainer width="100%" height={250}>
                           <BarChart data={topArtistsData} layout="vertical">
                             <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                            <XAxis type="number" stroke="#9ca3af" />
+                            <XAxis
+                              type="number"
+                              stroke="#9ca3af"
+                              allowDecimals={false}
+                              tickFormatter={(value) => Math.round(value)}
+                            />
                             <YAxis dataKey="artist" type="category" width={100} stroke="#9ca3af" />
                             <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151' }} />
                             <Bar dataKey="count" fill="#ec4899" radius={[0, 8, 8, 0]} />
@@ -654,6 +769,101 @@ export default function EarwormsApp() {
                             <Bar dataKey="count" fill="#6366f1" radius={[8, 8, 0, 0]} />
                           </BarChart>
                         </ResponsiveContainer>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-700">
+                        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-white">
+                          <Clock className="w-5 h-5 text-cyan-400" />
+                          Mood Clock
+                        </h3>
+                        <div className="space-y-3">
+                          {moodClockData.map((row) => (
+                            <div key={row.period} className="flex items-center justify-between bg-gray-900 bg-opacity-60 rounded-lg px-3 py-2 border border-gray-700">
+                              <div className="min-w-0">
+                                <div className="text-xs text-gray-400">{row.period}</div>
+                                <div className="text-sm text-white truncate">{row.topGenre}</div>
+                              </div>
+                              <div className="text-right shrink-0 pl-2">
+                                <div className="text-sm font-semibold text-cyan-300">{row.topShare}%</div>
+                                <div className="text-xs text-gray-500">{row.topCount} songs</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-xs text-gray-400 mt-4">Most common genre in each part of the day.</p>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-700">
+                        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-white">
+                          <Music className="w-5 h-5 text-amber-400" />
+                          Nostalgia Score
+                        </h3>
+                        <div className="text-4xl font-bold text-amber-300 mb-1">
+                          {hasNostalgiaData ? `${nostalgiaScore}y` : '--'}
+                        </div>
+                        <p className="text-sm text-gray-300 mb-2">{nostalgiaLabel}</p>
+                        <p className="text-xs text-gray-400">
+                          Average age of your earworms when they got stuck in your head.
+                        </p>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-700">
+                        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-white">
+                          <TrendingUp className="w-5 h-5 text-green-400" />
+                          Discovery vs Comfort
+                        </h3>
+                        {discoveryComfortWindow.length > 0 ? (
+                          <ResponsiveContainer width="100%" height={250}>
+                            <BarChart data={discoveryComfortWindow}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                              <XAxis dataKey="label" stroke="#9ca3af" minTickGap={18} />
+                              <YAxis stroke="#9ca3af" allowDecimals={false} />
+                              <Tooltip
+                                contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151' }}
+                                formatter={(value, name) => [`${value} songs`, name === 'discovery' ? 'Discovery' : 'Comfort']}
+                              />
+                              <Legend />
+                              <Bar dataKey="discovery" name="Discovery" stackId="artists" fill="#22c55e" radius={[6, 6, 0, 0]} />
+                              <Bar dataKey="comfort" name="Comfort" stackId="artists" fill="#a855f7" radius={[6, 6, 0, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <div className="h-[250px] flex items-center justify-center text-gray-500 text-sm">
+                            Add more songs to unlock this trend.
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-700">
+                        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-white">
+                          <BarChart3 className="w-5 h-5 text-amber-400" />
+                          Popularity Drift
+                        </h3>
+                        {popularityDriftWindow.length > 0 ? (
+                          <ResponsiveContainer width="100%" height={250}>
+                            <LineChart data={popularityDriftWindow}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                              <XAxis dataKey="label" stroke="#9ca3af" minTickGap={18} />
+                              <YAxis stroke="#9ca3af" domain={[0, 100]} />
+                              <Tooltip
+                                contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151' }}
+                                formatter={(value) => [`${value}`, 'Avg Popularity']}
+                              />
+                              <Line
+                                type="monotone"
+                                dataKey="popularity"
+                                stroke="#f59e0b"
+                                strokeWidth={3}
+                                dot={{ r: 3, fill: '#f59e0b' }}
+                                activeDot={{ r: 5 }}
+                              />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <div className="h-[250px] flex items-center justify-center text-gray-500 text-sm">
+                            Add songs with popularity data to unlock this trend.
+                          </div>
+                        )}
                       </div>
                     </div>
                   </>

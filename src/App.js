@@ -270,7 +270,17 @@ export default function EarwormsApp() {
     return acc;
   }, {});
 
-  const genreChartData = Object.entries(genreData).map(([name, value]) => ({ name, value }));
+  const sortedGenreEntries = Object.entries(genreData).sort(([, a], [, b]) => b - a);
+  const MAX_GENRE_SLICES = 7;
+  const visibleGenreEntries = sortedGenreEntries.slice(0, MAX_GENRE_SLICES);
+  const hiddenGenreTotal = sortedGenreEntries
+    .slice(MAX_GENRE_SLICES)
+    .reduce((sum, [, value]) => sum + value, 0);
+
+  const genreChartData = [
+    ...visibleGenreEntries.map(([name, value]) => ({ name, value })),
+    ...(hiddenGenreTotal > 0 ? [{ name: 'Other', value: hiddenGenreTotal }] : [])
+  ];
 
   const timeOfDayData = songs.reduce((acc, song) => {
     const hour = new Date(song.timestamp).getHours();
@@ -559,8 +569,10 @@ export default function EarwormsApp() {
                               cx="50%"
                               cy="50%"
                               labelLine={false}
-                              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                              outerRadius={80}
+                              label={false}
+                              innerRadius={45}
+                              outerRadius={85}
+                              paddingAngle={2}
                               fill="#8884d8"
                               dataKey="value"
                             >
@@ -568,9 +580,32 @@ export default function EarwormsApp() {
                                 <Cell key={`cell-${index}`} fill={getGenreColor(entry.name)} />
                               ))}
                             </Pie>
-                            <Tooltip />
+                            <Tooltip
+                              contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151' }}
+                              formatter={(value, name) => {
+                                const percent = songs.length > 0 ? ((value / songs.length) * 100).toFixed(0) : 0;
+                                return [`${value} songs (${percent}%)`, name];
+                              }}
+                            />
                           </RechartsPie>
                         </ResponsiveContainer>
+                        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                          {genreChartData.map((entry) => {
+                            const percent = songs.length > 0 ? Math.round((entry.value / songs.length) * 100) : 0;
+                            return (
+                              <div key={entry.name} className="flex items-center justify-between gap-3 text-gray-300">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span
+                                    className="w-2.5 h-2.5 rounded-full shrink-0"
+                                    style={{ backgroundColor: getGenreColor(entry.name) }}
+                                  />
+                                  <span className="truncate">{entry.name}</span>
+                                </div>
+                                <span className="text-gray-400 shrink-0">{percent}%</span>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
 
                       <div className="bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-700">

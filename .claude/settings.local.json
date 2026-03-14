@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -X POST \"https://accounts.spotify.com/api/token\" -H \"Content-Type: application/x-www-form-urlencoded\" -u \"ee3306d48f1b4c8ab36422613435dd52:d8e9b5c54f1248baa36422613435dd52\" -d \"grant_type=client_credentials\")"
+    ]
+  }
+}

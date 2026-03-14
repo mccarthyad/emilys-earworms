@@ -92,7 +92,9 @@ export default function EarwormsApp() {
     try {
       const clientId = process.env.REACT_APP_SPOTIFY_CLIENT_ID;
       const clientSecret = process.env.REACT_APP_SPOTIFY_CLIENT_SECRET;
-      
+
+      console.log('[Spotify] client ID present:', !!clientId, '| secret present:', !!clientSecret);
+
       const response = await fetch('https://accounts.spotify.com/api/token', {
         method: 'POST',
         headers: {
@@ -101,11 +103,12 @@ export default function EarwormsApp() {
         },
         body: 'grant_type=client_credentials'
       });
-      
+
       const data = await response.json();
+      console.log('[Spotify] token response status:', response.status, '| data:', data);
       setSpotifyToken(data.access_token);
     } catch (error) {
-      console.error('Error getting Spotify token:', error);
+      console.error('[Spotify] Error getting token:', error);
     }
   };
 
